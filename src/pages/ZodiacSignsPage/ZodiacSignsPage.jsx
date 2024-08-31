@@ -1,14 +1,19 @@
 import React, {useEffect, useState} from 'react';
+import {useTranslation} from 'react-i18next';
 import {useTelegram} from '../../hooks/useTelegram';
 import {postRequest} from '../../requests/postRequest';
 import Card from '../../components/Card/Card';
+import Modal from '../../components/Modal/Modal';
 import {ZODIAC_SIGNS} from '../../constants/constants';
 
 import './styles.css';
 
 const ZodiacSignsPage = () => {
+    const [isSelectedSign, setIsSelectedSign] = useState(false);
+    const [touchStartX, setTouchStartX] = useState(0);
     const [userLanguage, setUserLanguage] = useState(null);
     const [horoscope, setHoroscope] = useState(null);
+    const [isLoading, setIsLoading] = useState(false);
 
     const {t} = useTranslation();
     const {TELEGRAM} = useTelegram();
@@ -18,9 +23,26 @@ const ZodiacSignsPage = () => {
         setUserLanguage(TELEGRAM.initDataUnsafe?.user?.language_code);
     }, []);
 
+    const handleTouchStart = (e) => {
+        setTouchStartX(e.touches[0].clientX);
+    };
+
+    const handleTouchMove = (e) => {
+        if (touchStartX === null) return;
+
+        const touchEndX = e.touches[0].clientX;
+        // magic number test ipad
+        if ((touchEndX - touchStartX) > 50) {
+            setIsSelectedSign(false)
+            TELEGRAM.BackButton.hide()
+        }
+    };
+
     const requestHoroscope = async (sign, language) => {
+        setIsLoading(true);
         const data = await postRequest(sign, language);
         setHoroscope(data);
+        setIsLoading(false);
     };
 
     const visibleBackButton = () => {
@@ -28,10 +50,15 @@ const ZodiacSignsPage = () => {
             TELEGRAM.BackButton.hide()
         } else {
             TELEGRAM.BackButton.show()
+            TELEGRAM.BackButton.onClick(() => {
+                setIsSelectedSign(false)
+                TELEGRAM.BackButton.hide()
+            })
         }
     }
 
     const handleClickSignDescription = (sign) => {
+        setIsSelectedSign(true)
         visibleBackButton()
         requestHoroscope(sign.toLowerCase(), userLanguage === 'ru' ? 'original' : 'translated').then();
     };
@@ -48,6 +75,26 @@ const ZodiacSignsPage = () => {
                     period={t(`ZodiacSigns.Date.Sign.${sign.sign}`)}
                 />
             ))}
+
+            {isSelectedSign && (
+                <Modal
+                    onTouchStart={handleTouchStart}
+                    onTouchMove={handleTouchMove}
+                >
+                    {isLoading ? (
+                        <p>{t("Loading")}</p>
+                    ) : (
+                        horoscope ? (
+                            <>
+                                <h2>{t(`ZodiacSigns.Sign.${horoscope.sign}`)}</h2>
+                                <p>{horoscope.horoscope}</p>
+                            </>
+                        ) : (
+                            <p>{t("ErrorRequest")}</p>
+                        )
+                    )}
+                </Modal>
+            )}
         </div>
     );
 };
