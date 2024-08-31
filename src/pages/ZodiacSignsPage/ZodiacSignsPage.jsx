@@ -7,7 +7,7 @@ import Modal from '../../components/Modal/Modal';
 import {ZODIAC_SIGNS} from '../../constants/constants';
 
 import './styles.css';
-
+//TODO test comment
 const ZodiacSignsPage = () => {
     const [isSelectedSign, setIsSelectedSign] = useState(false);
     const [touchStartX, setTouchStartX] = useState(0);
